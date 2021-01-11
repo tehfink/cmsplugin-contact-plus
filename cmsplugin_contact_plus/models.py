@@ -2,7 +2,7 @@ from django.conf import settings
 from django.db import models
 from django.utils.translation import ugettext_lazy as _
 from django.contrib.sites.models import Site
-from django.utils.encoding import python_2_unicode_compatible
+
 from django.db.models import Model
 
 from cms.models import CMSPlugin
@@ -30,7 +30,7 @@ def get_current_site():
     return _('Contact form message from {}').format(current_site)
 
 
-@python_2_unicode_compatible
+
 class ContactPlus(CMSPlugin):
     title = models.CharField(_('Title'),
             null=True,
@@ -100,7 +100,6 @@ if recaptcha_installed():
     FIELD_TYPE += (('ReCaptcha', 'reCAPTCHA'),)
 
 
-@python_2_unicode_compatible
 class ExtraField(SortableMixin):
     """
     """
@@ -126,7 +125,7 @@ class ExtraField(SortableMixin):
         ordering = ('inline_ordering_position',)
 
 
-@python_2_unicode_compatible
+
 class ContactRecord(Model):
     """
     """
