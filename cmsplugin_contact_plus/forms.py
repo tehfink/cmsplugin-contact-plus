@@ -9,7 +9,6 @@ from django.conf import settings
 from django.utils.translation import ugettext_lazy as _
 
 from captcha.fields import ReCaptchaField
-from simplemathcaptcha.fields import MathCaptchaField
 from cmsplugin_contact_plus.models import ContactPlus, ContactRecord
 from cmsplugin_contact_plus.signals import contact_message_sent
 from cmsplugin_contact_plus.utils import get_validators
@@ -104,11 +103,6 @@ class ContactFormPlus(forms.Form):
                             initial=lInitial,  # NOTE: This overwrites extraField.initial!
                             widget=forms.HiddenInput,
                             required=False)
-                elif extraField.fieldType == 'MathCaptcha':
-                    self.fields[slugify(extraField.label)] = MathCaptchaField(
-                                                label=extraField.label,
-                                                initial=extraField.initial,
-                                                required=True)
                 elif extraField.fieldType == 'ReCaptcha':
                     self.fields[slugify(extraField.label)] = ReCaptchaField(
                                                 label=extraField.label,
