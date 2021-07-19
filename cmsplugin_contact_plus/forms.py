@@ -1,6 +1,6 @@
 from django.utils.http import urlquote
 from django import forms
-from django.core.mail import EmailMessage
+from django.core.mail import EmailMultiAlternatives
 from django.template.loader import render_to_string
 from django.contrib.sites.models import Site
 from django.template.defaultfilters import slugify
@@ -13,6 +13,7 @@ from simplemathcaptcha.fields import MathCaptchaField
 from cmsplugin_contact_plus.models import ContactPlus, ContactRecord
 from cmsplugin_contact_plus.signals import contact_message_sent
 from cmsplugin_contact_plus.utils import get_validators
+from django.db.models import Q
 
 class ContactFormPlus(forms.Form):
     required_css_class = getattr(settings, 'CONTACT_PLUS_REQUIRED_CSS_CLASS', 'required')
@@ -64,7 +65,7 @@ class ContactFormPlus(forms.Form):
                 elif extraField.fieldType == 'IntegerField':
                     self.fields[slugify(extraField.label)] = forms.IntegerField(label=extraField.label,
                             initial=extraField.initial,
-                            widget=forms.TextInput(
+                            widget=forms.NumberInput(
                                 attrs={'placeholder': extraField.placeholder}
                             ),
                             required=extraField.required)
@@ -169,19 +170,36 @@ class ContactFormPlus(forms.Form):
                 cc_list.append(cc_address)
         except:
             pass
-
-        email_message = EmailMessage(
+        
+        # Site specific from_email via GlobalProperty       
+        try:
+            from userproperty.models import GlobalProperty
+            host = request.get_host()
+            site = host.split('.')[1] 
+            from_email_property = GlobalProperty.objects.filter(Q(name__startswith='DEFAULT_FROM_EMAIL') &
+                                                                Q(name__contains=site)).last()
+            from_email = from_email_property.value            
+        except:
+            from_email = settings.DEFAULT_FROM_EMAIL
+            
+        email_message = EmailMultiAlternatives(
             subject=instance.email_subject,
             body=render_to_string("cmsplugin_contact_plus/email.txt", {'data': self.cleaned_data,
                                                                       'ordered_data': ordered_dic_list,
                                                                       'instance': instance,
                                                                       }),
             cc=cc_list,
-            from_email=getattr(settings, 'CONTACT_PLUS_FROM_EMAIL', settings.DEFAULT_FROM_EMAIL),
+            from_email=getattr(settings, 'CONTACT_PLUS_FROM_EMAIL', from_email),
             to=[recipient_email, ],
             headers=tmp_headers,
         )
-        email_message.send(fail_silently=True)
+        if getattr(settings, 'CONTACT_PLUS_SEND_HTML_EMAIL', False):
+            html_content = render_to_string("cmsplugin_contact_plus/email.html", {'data': self.cleaned_data,
+                                                                      'ordered_data': ordered_dic_list,
+                                                                      'instance': instance,
+                                                                      })
+            email_message.attach_alternative(html_content, "text/html")
+        email_message.send(fail_silently=getattr(settings, 'CONTACT_PLUS_FAIL_SILENTLY', True))
 
         if instance.collect_records:# and not multipart:
             record = ContactRecord(contact_form=instance, data=ordered_dic_list)#self.cleaned_data)
