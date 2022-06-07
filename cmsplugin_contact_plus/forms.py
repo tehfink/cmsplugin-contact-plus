@@ -9,6 +9,7 @@ from django.conf import settings
 from django.utils.translation import ugettext_lazy as _
 
 from captcha.fields import ReCaptchaField
+from simplemathcaptcha.fields import MathCaptchaField
 from cmsplugin_contact_plus.models import ContactPlus, ContactRecord
 from cmsplugin_contact_plus.signals import contact_message_sent
 from cmsplugin_contact_plus.utils import get_validators
@@ -53,11 +54,11 @@ class ContactFormPlus(forms.Form):
                                 attrs={'placeholder': extraField.placeholder}
                             ),
                             required=extraField.required)
-                elif extraField.fieldType == 'FileField': 
+                elif extraField.fieldType == 'FileField':
                     self.fields[slugify(extraField.label)] = forms.FileField(label=extraField.label,
                             initial=extraField.initial,
                             required=extraField.required)
-                elif extraField.fieldType == 'ImageField': 
+                elif extraField.fieldType == 'ImageField':
                     self.fields[slugify(extraField.label)] = forms.ImageField(label=extraField.label,
                             initial=extraField.initial,
                             required=extraField.required)
@@ -103,6 +104,11 @@ class ContactFormPlus(forms.Form):
                             initial=lInitial,  # NOTE: This overwrites extraField.initial!
                             widget=forms.HiddenInput,
                             required=False)
+                elif extraField.fieldType == 'MathCaptcha':
+                    self.fields[slugify(extraField.label)] = MathCaptchaField(
+                        label=extraField.label,
+                        initial=extraField.initial,
+                        required=True)
                 elif extraField.fieldType == 'ReCaptcha':
                     self.fields[slugify(extraField.label)] = ReCaptchaField(
                                                 label=extraField.label,
@@ -137,7 +143,7 @@ class ContactFormPlus(forms.Form):
             for field in order:
                 key = slugify(field.label)
                 value = self.cleaned_data.get(key, '(no input)')
-                # redefine value for files... 
+                # redefine value for files...
                 if field.fieldType in ["FileField", "ImageField"]:
                     val = ts + '-' + get_valid_filename(value)
                     if settings.MEDIA_URL.startswith("http"):
@@ -164,18 +170,18 @@ class ContactFormPlus(forms.Form):
                 cc_list.append(cc_address)
         except:
             pass
-        
-        # Site specific from_email via GlobalProperty       
+
+        # Site specific from_email via GlobalProperty
         try:
             from userproperty.models import GlobalProperty
             host = request.get_host()
-            site = host.split('.')[1] 
+            site = host.split('.')[1]
             from_email_property = GlobalProperty.objects.filter(Q(name__startswith='DEFAULT_FROM_EMAIL') &
                                                                 Q(name__contains=site)).last()
-            from_email = from_email_property.value            
+            from_email = from_email_property.value
         except:
             from_email = settings.DEFAULT_FROM_EMAIL
-            
+
         email_message = EmailMultiAlternatives(
             subject=instance.email_subject,
             body=render_to_string("cmsplugin_contact_plus/email.txt", {'data': self.cleaned_data,
