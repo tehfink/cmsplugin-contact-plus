@@ -1,4 +1,4 @@
-import csv 
+import csv
 import six
 from six import text_type
 
@@ -6,28 +6,28 @@ from django.http import HttpResponse
 
 
 class LUT(object):
-        
+
     def __init__(self):
         self.lut = []
-            
+
     def add_field(self, field_name):
         """ """
         if field_name not in self.lut:
             self.lut.append(field_name)
-            
+
     def get_idx(self, field_name):
         """ """
         return self.lut.index(field_name)
-    
-    
-    
+
+
+
 def export_as_csv_action(description="Export selected objects as CSV file",
                          fields=None, exclude=None, header=True, json_fields=None):
     """
     This function returns an export csv action
     'fields' and 'exclude' work like in django ModelForm
     'header' is whether or not to output the column names as the first row
-    
+
     json_fields will be exploaded to rows.
     """
 
@@ -50,7 +50,7 @@ def export_as_csv_action(description="Export selected objects as CSV file",
 
         response = HttpResponse(content_type='text/csv')
         response['Content-Disposition'] = 'attachment; filename=%s.csv' % text_type(opts).replace('.', '_')
-        
+
         writer = csv.writer(response)
         """
         if header:
@@ -74,13 +74,13 @@ def export_as_csv_action(description="Export selected objects as CSV file",
                     j = getattr(obj, field)
                     for l in j:
                         try:
-                            for k, v in l.iteritems(): 
+                            for k, v in l.items():
                                 lut.add_field(k)
                         except AttributeError:
                             pass
                 else:
                     lut.add_field(field)
-        
+
         if header:
             writer.writerow(lut.lut)
         for obj in queryset:
@@ -89,7 +89,7 @@ def export_as_csv_action(description="Export selected objects as CSV file",
                 if field in json_fields:
                     j = getattr(obj, field)
                     for l in j:
-                        for k, v in l.iteritems(): 
+                        for k, v in l.items():
                             try:
                                 s = text_type(v)
                                 if six.PY2:
@@ -102,8 +102,8 @@ def export_as_csv_action(description="Export selected objects as CSV file",
             for field in many_to_many_field_names:
                 row[lut.get_idx(field)] = text_type(getattr(obj, field).all())
             writer.writerow(row)
-            
-            
+
+
         return response
     export_as_csv.short_description = description
     return export_as_csv
